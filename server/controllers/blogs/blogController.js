@@ -2,6 +2,7 @@ const db = require("../../models");
 const dayjs = require("dayjs");
 const relativeTime = require("dayjs/plugin/relativeTime");
 const { where } = require("sequelize");
+const { fn, col, literal } = require("sequelize");
 
 dayjs.extend(relativeTime);
 
@@ -315,7 +316,7 @@ const recentBlog = async (req, res) => {
       include: [
         {
           model: db.users,
-          as: "author", 
+          as: "author",
           attributes: ["fullName", "photo"],
         },
       ],
@@ -346,12 +347,44 @@ const recentBlog = async (req, res) => {
 const fetchBlogByCategory = async (req, res) => {
   const { category } = req.body;
 
+  if (!category) {
+    return res.status(400).json({
+      status: "fail",
+      message: "Category is required",
+    });
+  }
+
   try {
     const blogs = await db.blogs.findAll({
       where: { category },
+      order: [["createdAt", "DESC"]],
+      attributes: {
+        include: [
+          // 🛠 Use double quotes for case-sensitive identifiers
+          [
+            literal(`(
+              SELECT COUNT(*) FROM "likes" WHERE "likes"."blogId" = "blog"."id"
+            )`),
+            "likeCount",
+          ],
+          [
+            literal(`(
+              SELECT COUNT(*) FROM "comments" WHERE "comments"."blogId" = "blog"."id"
+            )`),
+            "commentCount",
+          ],
+        ],
+      },
+      include: [
+        {
+          model: db.users,
+          as: "author",
+          attributes: ["fullName", "photo"],
+        },
+      ],
     });
 
-    if (blogs.length === 0) {
+    if (!blogs.length) {
       return res.status(404).json({
         status: "fail",
         message: "No blogs found in this category",
@@ -486,6 +519,87 @@ const getPopularBlogs = async (req, res) => {
     });
   }
 };
+//edit a comment
+const editComment = async (req, res) => {
+  const { commentId } = req.params;
+  const { content } = req.body;
+  const userId = req.user?.id;
+
+  if (!content || !commentId) {
+    return res
+      .status(400)
+      .json({ status: "fail", message: "Missing content or comment ID" });
+  }
+
+  try {
+    const comment = await db.comments.findOne({ where: { id: commentId } });
+
+    if (!comment) {
+      return res
+        .status(404)
+        .json({ status: "fail", message: "Comment not found" });
+    }
+    if (comment.userId !== userId) {
+      return res
+        .status(403)
+        .json({ status: "fail", message: "Unauthorized to edit this comment" });
+    }
+    comment.content = content;
+    await comment.save();
+
+    return res.status(200).json({ status: "success", comment });
+  } catch (error) {
+    console.error("Error editing comment:", error);
+    return res.status(500).json({ status: "error", message: "Server error" });
+  }
+};
+//delete a comment
+const deleteComment = async (req, res) => {
+  const { commentId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({
+      status: "fail",
+      message: "Unauthorized - Please log in",
+    });
+  }
+
+  try {
+    const comment = await db.comments.findOne({
+      where: { id: Number(commentId) },
+    });
+
+    if (!comment) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Comment not found",
+      });
+    }
+
+    if (comment.userId !== userId) {
+      return res.status(403).json({
+        status: "fail",
+        message: "Forbidden - You can only delete your own comments",
+      });
+    }
+
+    await db.comments.destroy({
+      where: { id: Number(commentId) },
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Comment deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+};
 
 module.exports = {
   createBlog,
@@ -502,4 +616,6 @@ module.exports = {
   recentBlog,
   fetchBlogByCategory,
   getPopularBlogs,
+  editComment,
+  deleteComment,
 };

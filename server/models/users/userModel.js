@@ -20,6 +20,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      bio: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
       role: {
         type: DataTypes.INTEGER,
         allowNull: false,

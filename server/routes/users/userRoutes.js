@@ -17,5 +17,7 @@ router.get('/profile', authenticated, userController.profile)
 router.put('/editProfile', authenticated, upload.single("photo") , userController.editProfile)
 //change password
 router.put('/changePassword', authenticated, userController.changePassword)
+//author profile
+router.put('/author', authenticated, userController.authorProfile);
 
 module.exports = router

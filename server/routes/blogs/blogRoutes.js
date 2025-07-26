@@ -28,15 +28,17 @@ router.post(
 router.patch("/updateBlog/:id", authenticate, upload.single("image"), blogController.updateBlog);
 router.delete("/deleteBlog/:id", authenticate, blogController.deleteBlog);
 router.get("/recent", blogController.recentBlog);
-router.get("/category", blogController.fetchBlogByCategory);
+router.post("/category", blogController.fetchBlogByCategory);
 router.get("/popular", blogController.getPopularBlogs);
 router.post("/like/:blogId", authenticate, blogController.toggleLike);
-router.post("/comment/blog/:blogId", authenticate, blogController.commentBlog);
+router.post("/comment/:blogId", authenticate, blogController.commentBlog);
 router.get("/", blogController.allBlog);
 router.get("/:id", blogController.getBlogById);
 router.get("/like-status/:blogId", authenticate, blogController.getBlogLikeStatus);
 router.get("/:blogId/comments", blogController.blogComments);
 router.get("/blogMe", authenticate, blogController.ownBlog);
+router.put("/editComment/:commentId", authenticate, blogController.editComment);
+router.delete("/deleteComment/:commentId", authenticate, blogController.deleteComment);
 
 
 module.exports = router;

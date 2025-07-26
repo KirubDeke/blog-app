@@ -248,7 +248,66 @@ const changePassword = async (req, res) => {
     });
   }
 };
+//fetch autor profile
+const authorProfile = async (req, res) => {
+  const userId = req.params.userId || req.user?.id;
+  try {
+    const author = await db.users.findByPk(userId, {
+      attributes: ["id", "fullName", "photo", "bio"],
+      include: [
+        {
+          model: db.blogs,
+          attributes: [],
+          as: "blogs",
+        },
+      ],
+      group: ["users.id"],
+      raw: true,
+      nest: true,
+    });
 
+    if (!author) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found",
+      });
+    }
+
+    const totalLikes = await db.likes.count({
+      where: {
+        blogId: {
+          [db.Sequelize.Op.in]: db.Sequelize.literal(
+            `(SELECT id FROM blogs WHERE authorId = ${userId})`
+          ),
+        },
+      },
+    });
+    const blogCount = await db.blogs.count({
+      where: { authorId: userId },
+    });
+    const response = {
+      status: "success",
+      data: {
+        id: author.id,
+        fullName: author.fullName,
+        photo: author.photo,
+        bio: author.bio,
+        stats: {
+          blogCount,
+          totalLikes,
+        },
+      },
+    };
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching author profile:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 module.exports = {
   signup,
   login,
@@ -257,4 +316,5 @@ module.exports = {
   profile,
   editProfile,
   changePassword,
+  authorProfile
 };
