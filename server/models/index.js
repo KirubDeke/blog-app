@@ -23,6 +23,7 @@ db.users = require("./users/userModel")(sequelize, DataTypes);
 db.blogs = require("./blogs/blogModel")(sequelize, DataTypes);
 db.likes = require("./blogs/likeModel")(sequelize, DataTypes);
 db.comments = require("./blogs/commentModel")(sequelize, DataTypes);
+db.saved_blog = require("./blogs/SavedBlogModel")(sequelize, DataTypes);
 //associations
 db.users.hasMany(db.blogs, {
   foreignKey: "authorId",
@@ -45,6 +46,12 @@ db.users.hasMany(db.comments, { foreignKey: "userId", onDelete: "CASCADE" });
 db.blogs.hasMany(db.comments, { foreignKey: "blogId",  as: "comments", onDelete: "CASCADE" });
 db.comments.belongsTo(db.users, { foreignKey: "userId" });
 db.comments.belongsTo(db.blogs, { foreignKey: "blogId" });
+
+//saved blog association
+db.users.hasMany(db.saved_blog, { foreignKey: "userId", onDelete: "CASCADE" });
+db.saved_blog.belongsTo(db.users, { foreignKey: "userId"});
+db.blogs.hasMany(db.saved_blog, {foreignKey: "blogId", onDelete: "CASCADE"});
+db.saved_blog.belongsTo(db.blogs, { foreignKey: "blogId"});
 
 //exporting the module
 module.exports = db;

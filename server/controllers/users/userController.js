@@ -134,7 +134,7 @@ const profile = async (req, res) => {
   try {
     const user = await db.users.findOne({
       where: { id: userId },
-      attributes: ["fullName", "email", "photo"],
+      attributes: ["id", "fullName", "email", "photo", "bio"],
     });
     if (!user) {
       return res.status(404).json({
@@ -212,7 +212,7 @@ const changePassword = async (req, res) => {
     }
 
     const user = await db.users.findOne({
-      where: { id: userId }, 
+      where: { id: userId },
       attributes: ["password"],
     });
 
@@ -223,7 +223,7 @@ const changePassword = async (req, res) => {
       });
     }
 
-    const checkPassword = await bcrypt.compare(currentPassword, user.password); 
+    const checkPassword = await bcrypt.compare(currentPassword, user.password);
     if (!checkPassword) {
       return res.status(401).json({
         status: "fail",
@@ -250,20 +250,20 @@ const changePassword = async (req, res) => {
 };
 //fetch autor profile
 const authorProfile = async (req, res) => {
-  const userId = req.params.userId || req.user?.id;
+  const authorId = parseInt(req.params.userId || req.user?.id, 10);
+
+  if (isNaN(authorId)) {
+    return res.status(400).json({
+      status: "fail",
+      message: "Invalid user ID",
+    });
+  }
+
   try {
-    const author = await db.users.findByPk(userId, {
+    // Find author by primary key
+    const author = await db.users.findByPk(authorId, {
       attributes: ["id", "fullName", "photo", "bio"],
-      include: [
-        {
-          model: db.blogs,
-          attributes: [],
-          as: "blogs",
-        },
-      ],
-      group: ["users.id"],
       raw: true,
-      nest: true,
     });
 
     if (!author) {
@@ -273,19 +273,28 @@ const authorProfile = async (req, res) => {
       });
     }
 
-    const totalLikes = await db.likes.count({
-      where: {
-        blogId: {
-          [db.Sequelize.Op.in]: db.Sequelize.literal(
-            `(SELECT id FROM blogs WHERE authorId = ${userId})`
-          ),
+    // Get blogs authored by this user
+    const blogs = await db.blogs.findAll({
+      where: { authorId },
+      attributes: ["id"],
+      raw: true,
+    });
+
+    const blogIds = blogs.map((blog) => blog.id);
+    const blogCount = blogIds.length;
+
+    let totalLikes = 0;
+    if (blogCount > 0) {
+      totalLikes = await db.likes.count({
+        where: {
+          blogId: {
+            [db.Sequelize.Op.in]: blogIds,
+          },
         },
-      },
-    });
-    const blogCount = await db.blogs.count({
-      where: { authorId: userId },
-    });
-    const response = {
+      });
+    }
+
+    return res.status(200).json({
       status: "success",
       data: {
         id: author.id,
@@ -297,8 +306,7 @@ const authorProfile = async (req, res) => {
           totalLikes,
         },
       },
-    };
-    return res.status(200).json(response);
+    });
   } catch (error) {
     console.error("Error fetching author profile:", error);
     return res.status(500).json({
@@ -308,6 +316,36 @@ const authorProfile = async (req, res) => {
     });
   }
 };
+
+const authorBio = async (req, res) => {
+  const userId = req.user?.id;
+  const { bio } = req.body;
+
+  try {
+    const user = await db.users.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found",
+      });
+    }
+    await user.update({ bio });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Bio updated successfully",
+      data: { bio: user.bio },
+    });
+  } catch (error) {
+    console.error("Error updating bio:", error);
+    return res.status(500).json({
+      status: "fail",
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -316,5 +354,6 @@ module.exports = {
   profile,
   editProfile,
   changePassword,
-  authorProfile
+  authorProfile,
+  authorBio,
 };

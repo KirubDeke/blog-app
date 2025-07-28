@@ -18,6 +18,8 @@ router.put('/editProfile', authenticated, upload.single("photo") , userControlle
 //change password
 router.put('/changePassword', authenticated, userController.changePassword)
 //author profile
-router.put('/author', authenticated, userController.authorProfile);
+router.get('/author/:authorId', authenticated, userController.authorProfile);
+//create a bio
+router.put('/updateBio', authenticated, userController.authorBio);
 
 module.exports = router

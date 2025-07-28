@@ -317,7 +317,7 @@ const recentBlog = async (req, res) => {
         {
           model: db.users,
           as: "author",
-          attributes: ["fullName", "photo"],
+          attributes: ["id", "fullName", "photo"],
         },
       ],
     });
@@ -486,7 +486,7 @@ const getPopularBlogs = async (req, res) => {
         {
           model: db.users,
           as: "author",
-          attributes: ["fullName", "photo"],
+          attributes: ["id", "fullName", "photo"],
         },
       ],
       order: [
@@ -601,6 +601,96 @@ const deleteComment = async (req, res) => {
   }
 };
 
+//blog save controllers
+const saveBlog = async (req, res) => {
+  const userId = req.user?.id;
+  const { blogId } = req.params;
+
+  try {
+    const blog = await db.blogs.findOne({ where: { id: blogId } });
+
+    if (!blog) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Blog not found",
+      });
+    }
+
+    const [saved, created] = await db.saved_blog.findOrCreate({
+      where: { userId, blogId },
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: created ? "Blog saved successfully" : "Blog already saved",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: "fail",
+      message: "Internal server error",
+    });
+  }
+};
+//unsave a blog
+const unsaveBlog = async (req, res) => {
+  const userId = req.user?.id;
+  const { blogId } = req.params;
+
+  try {
+    const deleted = await db.saved_blog.destroy({
+      where: { userId, blogId },
+    });
+
+    if (deleted === 0) {
+      return res.status(404).json({
+        status: "fail",
+        message: "This blog is not saved",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "Blog unsaved successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: "fail",
+      message: "Internal server error",
+    });
+  }
+};
+//get saved blogs
+const getSavedBlogs = async (req, res) => {
+  const userId = req.user?.id;
+  try {
+    const saved = await db.saved_blog.findAll({
+      where: { userId },
+      include: {
+        model: db.blogs,
+        include: {
+          model: db.users,
+          as: "author",
+          attributes: ["id", "fullName", "photo"]
+        }
+      },
+      order: [["createdAt", "DESC"]]
+    });
+
+    const savedBlogs = saved.map(entry => entry.blog);
+
+    return res.status(200).json({
+      status: "success",
+      data: savedBlogs
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ status: "fail", message: "Internal server error" });
+  }
+};
+
+
 module.exports = {
   createBlog,
   updateBlog,
@@ -618,4 +708,7 @@ module.exports = {
   getPopularBlogs,
   editComment,
   deleteComment,
+  saveBlog,
+  unsaveBlog,
+  getSavedBlogs
 };

@@ -32,11 +32,17 @@ router.post("/category", blogController.fetchBlogByCategory);
 router.get("/popular", blogController.getPopularBlogs);
 router.post("/like/:blogId", authenticate, blogController.toggleLike);
 router.post("/comment/:blogId", authenticate, blogController.commentBlog);
+//save a blog
+router.post("/save/:blogId", authenticate, blogController.saveBlog);
+//unsave a blog
+router.delete("/unsave/:blogId", authenticate, blogController.unsaveBlog);
+//get saved blogs
+router.get("/getSavedBlogs", authenticate, blogController.getSavedBlogs);
 router.get("/", blogController.allBlog);
+router.get("/me", authenticate, blogController.ownBlog);
 router.get("/:id", blogController.getBlogById);
 router.get("/like-status/:blogId", authenticate, blogController.getBlogLikeStatus);
 router.get("/:blogId/comments", blogController.blogComments);
-router.get("/blogMe", authenticate, blogController.ownBlog);
 router.put("/editComment/:commentId", authenticate, blogController.editComment);
 router.delete("/deleteComment/:commentId", authenticate, blogController.deleteComment);
 
