@@ -22,16 +22,20 @@ module.exports = (sequelize, DataTypes) => {
       },
       bio: {
         type: DataTypes.TEXT,
-        allowNull: true
+        allowNull: true,
       },
       role: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 1,
         validate: {
-          isIn: [[0, 1]]
-        }
-      }
+          isIn: [[0, 1]],
+        },
+      },
+      canPostBlog: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
     },
     { timestamps: true }
   );

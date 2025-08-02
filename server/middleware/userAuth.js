@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const db = require("../models");
 
 const authenticate = (req, res, next) => {
   const token = req.cookies?.jwt; 
@@ -23,4 +24,84 @@ const authenticate = (req, res, next) => {
   }
 };
 
-module.exports = authenticate;
+const isAdmin = async (req, res, next) => {
+  const userId = req.user?.id;
+  
+  if (!userId) {
+    return res.status(401).json({
+      status: "fail",
+      message: "User not authenticated.",
+    });
+  }
+
+  try {
+    const user = await db.users.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found.",
+      });
+    }
+    
+    if (user.role === 0) {
+      return next();
+    } else {
+      return res.status(403).json({
+        status: "fail",
+        message: "Unauthorized. Admin access required.",
+      });
+    }
+
+  } catch (error) {
+    console.error("Admin check error:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+    });
+  }
+};
+
+const canPost = async (req, res, next) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({
+      status: "fail",
+      message: "User not authenticated.",
+    });
+  }
+
+  try {
+    const user = await db.users.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found.",
+      });
+    }
+
+    if (user.canPostBlog) {
+      return next(); 
+    } else {
+      return res.status(403).json({
+        status: "fail",
+        message: "You are not allowed to post blogs.",
+      });
+    }
+  } catch (error) {
+    console.error("CanPost middleware error:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+    });
+  }
+};
+
+
+module.exports = {
+  authenticate,
+  isAdmin,
+  canPost
+};

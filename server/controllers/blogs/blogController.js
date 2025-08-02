@@ -106,11 +106,17 @@ const commentBlog = async (req, res) => {
   const { blogId } = req.params;
   const { content } = req.body;
 
-  const comment = await db.comments.create({ userId, blogId, content });
+  const comment = await db.comments.create({
+    userId: Number(userId),
+    blogId: Number(blogId),
+    content,
+  });
 
   return res.status(201).json({
-    message: "Comment added",
-    comment,
+    id: comment.id,
+    content: comment.content,
+    userId: comment.userId,
+    createdAt: comment.createdAt,
   });
 };
 //fetch a blogs comment
@@ -526,23 +532,17 @@ const editComment = async (req, res) => {
   const userId = req.user?.id;
 
   if (!content || !commentId) {
-    return res
-      .status(400)
-      .json({ status: "fail", message: "Missing content or comment ID" });
+    return res.status(400).json({ status: "fail", message: "Missing content or comment ID" });
   }
 
   try {
-    const comment = await db.comments.findOne({ where: { id: commentId } });
+    const comment = await db.comments.findOne({ where: { id: Number(commentId) } });
 
     if (!comment) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Comment not found" });
+      return res.status(404).json({ status: "fail", message: "Comment not found" });
     }
-    if (comment.userId !== userId) {
-      return res
-        .status(403)
-        .json({ status: "fail", message: "Unauthorized to edit this comment" });
+    if (comment.userId !== Number(userId)) {
+      return res.status(403).json({ status: "fail", message: "Unauthorized to edit this comment" });
     }
     comment.content = content;
     await comment.save();
@@ -553,7 +553,7 @@ const editComment = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Server error" });
   }
 };
-//delete a comment
+
 const deleteComment = async (req, res) => {
   const { commentId } = req.params;
   const userId = req.user?.id;
@@ -577,7 +577,7 @@ const deleteComment = async (req, res) => {
       });
     }
 
-    if (comment.userId !== userId) {
+    if (comment.userId !== Number(userId)) {
       return res.status(403).json({
         status: "fail",
         message: "Forbidden - You can only delete your own comments",
@@ -672,24 +672,25 @@ const getSavedBlogs = async (req, res) => {
         include: {
           model: db.users,
           as: "author",
-          attributes: ["id", "fullName", "photo"]
-        }
+          attributes: ["id", "fullName", "photo"],
+        },
       },
-      order: [["createdAt", "DESC"]]
+      order: [["createdAt", "DESC"]],
     });
 
-    const savedBlogs = saved.map(entry => entry.blog);
+    const savedBlogs = saved.map((entry) => entry.blog);
 
     return res.status(200).json({
       status: "success",
-      data: savedBlogs
+      data: savedBlogs,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ status: "fail", message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
   }
 };
-
 
 module.exports = {
   createBlog,
@@ -710,5 +711,5 @@ module.exports = {
   deleteComment,
   saveBlog,
   unsaveBlog,
-  getSavedBlogs
+  getSavedBlogs,
 };

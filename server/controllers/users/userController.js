@@ -8,7 +8,7 @@ const User = db.users;
 
 const signup = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, password, role } = req.body;
 
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
@@ -24,6 +24,7 @@ const signup = async (req, res) => {
       fullName,
       email,
       password: hashedPassword,
+      role
     });
 
     const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, {
@@ -92,6 +93,7 @@ const login = async (req, res) => {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        role: user.role
       },
       token,
     });
@@ -111,7 +113,7 @@ const getMe = async (req, res) => {
   }
   try {
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    res.status(200).json({ user: decoded });
+    res.status(200).json({ authenticated: true, user: decoded });
   } catch (error) {
     return res.status(403).json({ message: "Invalid or expired token" });
   }
@@ -250,17 +252,16 @@ const changePassword = async (req, res) => {
 };
 //fetch autor profile
 const authorProfile = async (req, res) => {
-  const authorId = parseInt(req.params.userId || req.user?.id, 10);
+  const authorId = parseInt(req.params.authorId || req.user?.id, 10);
 
   if (isNaN(authorId)) {
     return res.status(400).json({
       status: "fail",
-      message: "Invalid user ID",
+      message: "Invalid author ID",
     });
   }
 
   try {
-    // Find author by primary key
     const author = await db.users.findByPk(authorId, {
       attributes: ["id", "fullName", "photo", "bio"],
       raw: true,
@@ -269,11 +270,10 @@ const authorProfile = async (req, res) => {
     if (!author) {
       return res.status(404).json({
         status: "fail",
-        message: "User not found",
+        message: "Author not found",
       });
     }
 
-    // Get blogs authored by this user
     const blogs = await db.blogs.findAll({
       where: { authorId },
       attributes: ["id"],
@@ -297,7 +297,7 @@ const authorProfile = async (req, res) => {
     return res.status(200).json({
       status: "success",
       data: {
-        id: author.id,
+        authorId: author.id,
         fullName: author.fullName,
         photo: author.photo,
         bio: author.bio,

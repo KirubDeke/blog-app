@@ -1,6 +1,6 @@
 const express = require('express')
 const userController = require('../../controllers/users/userController')
-const authenticated = require('../../middleware/userAuth')
+const { authenticate } = require('../../middleware/userAuth')
 const router = express.Router()
 const upload = require("../../config/multerConfig")
 
@@ -12,14 +12,14 @@ router.get('/me', userController.getMe)
 //sign out
 router.post('/signout', userController.signout)
 //fetch profile
-router.get('/profile', authenticated, userController.profile)
+router.get('/profile', authenticate, userController.profile)
 //edit profile
-router.put('/editProfile', authenticated, upload.single("photo") , userController.editProfile)
+router.put('/editProfile', authenticate, upload.single("photo") , userController.editProfile)
 //change password
-router.put('/changePassword', authenticated, userController.changePassword)
+router.put('/changePassword', authenticate, userController.changePassword)
 //author profile
-router.get('/author/:authorId', authenticated, userController.authorProfile);
+router.get('/author/:authorId', userController.authorProfile);
 //create a bio
-router.put('/updateBio', authenticated, userController.authorBio);
+router.put('/updateBio', authenticate, userController.authorBio);
 
 module.exports = router

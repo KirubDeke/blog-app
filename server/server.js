@@ -7,6 +7,8 @@ const db = require("./models");
 const path = require("path");
 const userRoutes = require("./routes/users/userRoutes");
 const blogRoutes = require("./routes/blogs/blogRoutes");
+const contactRoutes = require("./routes/contact/contactRoutes");
+const adminRoutes = require("./routes/admin/adminRoutes");
 
 //setting up your port
 const PORT = process.env.PORT || 8000;
@@ -31,8 +33,11 @@ db.sequelize.sync().then(() => {
 });
 
 //routes for the user API
-app.use("/curious-life", userRoutes);
+app.use("/curious-life/admin", adminRoutes);
+app.use("/curious-life", userRoutes, contactRoutes);
 app.use("/curious-life/blogs", blogRoutes);
+
+
 
 //listening to server connection
 app.listen(PORT, () => console.log(`Server is connected on ${PORT}`));

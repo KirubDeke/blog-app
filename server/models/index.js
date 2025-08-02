@@ -18,40 +18,49 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
-//connecting to model
 db.users = require("./users/userModel")(sequelize, DataTypes);
 db.blogs = require("./blogs/blogModel")(sequelize, DataTypes);
 db.likes = require("./blogs/likeModel")(sequelize, DataTypes);
 db.comments = require("./blogs/commentModel")(sequelize, DataTypes);
 db.saved_blog = require("./blogs/SavedBlogModel")(sequelize, DataTypes);
-//associations
+
 db.users.hasMany(db.blogs, {
   foreignKey: "authorId",
   as: "blogs",
   onDelete: "CASCADE",
 });
-
 db.blogs.belongsTo(db.users, {
   foreignKey: "authorId",
   as: "author",
 });
-// Like associations
+
 db.users.hasMany(db.likes, { foreignKey: "userId", onDelete: "CASCADE" });
-db.blogs.hasMany(db.likes, { foreignKey: "blogId",  as: "likes", onDelete: "CASCADE" });
+db.blogs.hasMany(db.likes, { foreignKey: "blogId", as: "likes", onDelete: "CASCADE" });
 db.likes.belongsTo(db.users, { foreignKey: "userId" });
 db.likes.belongsTo(db.blogs, { foreignKey: "blogId" });
 
-// Comment associations
 db.users.hasMany(db.comments, { foreignKey: "userId", onDelete: "CASCADE" });
-db.blogs.hasMany(db.comments, { foreignKey: "blogId",  as: "comments", onDelete: "CASCADE" });
+db.blogs.hasMany(db.comments, { foreignKey: "blogId", as: "comments", onDelete: "CASCADE" });
 db.comments.belongsTo(db.users, { foreignKey: "userId" });
 db.comments.belongsTo(db.blogs, { foreignKey: "blogId" });
 
-//saved blog association
-db.users.hasMany(db.saved_blog, { foreignKey: "userId", onDelete: "CASCADE" });
-db.saved_blog.belongsTo(db.users, { foreignKey: "userId"});
-db.blogs.hasMany(db.saved_blog, {foreignKey: "blogId", onDelete: "CASCADE"});
-db.saved_blog.belongsTo(db.blogs, { foreignKey: "blogId"});
+db.users.belongsToMany(db.blogs, {
+  through: db.saved_blog,
+  as: "savedBlogs",
+  foreignKey: "userId",
+  otherKey: "blogId",
+});
 
-//exporting the module
+db.blogs.belongsToMany(db.users, {
+  through: db.saved_blog,
+  as: "usersWhoSaved",
+  foreignKey: "blogId",
+  otherKey: "userId",
+});
+
+db.users.hasMany(db.saved_blog, { foreignKey: "userId", onDelete: "CASCADE" });
+db.saved_blog.belongsTo(db.users, { foreignKey: "userId" });
+db.blogs.hasMany(db.saved_blog, { foreignKey: "blogId", onDelete: "CASCADE" });
+db.saved_blog.belongsTo(db.blogs, { foreignKey: "blogId" });
+
 module.exports = db;
