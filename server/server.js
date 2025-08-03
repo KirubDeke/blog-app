@@ -10,34 +10,56 @@ const blogRoutes = require("./routes/blogs/blogRoutes");
 const contactRoutes = require("./routes/contact/contactRoutes");
 const adminRoutes = require("./routes/admin/adminRoutes");
 
-//setting up your port
+// Setting up your port
 const PORT = process.env.PORT || 8000;
 
-//assigning the variable app to express
 const app = express();
 
-//middleware
+// Allowed origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://curious-life.vercel.app'
+];
+
+// Middleware for CORS
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://curious-life.vercel.app/'],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS: " + origin));
+  },
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.use((req, res, next) => {
+  console.log("Incoming request origin:", req.headers.origin);
+  next();
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-//synchronizing the database and forcing it to false so we dont lose data
+// Synchronizing the database
 db.sequelize.sync().then(() => {
-  console.log("db has been re sync");
+  console.log("DB has been re-synced");
 });
 
-//routes for the user API
+// Routes
 app.use("/curious-life/admin", adminRoutes);
 app.use("/curious-life", userRoutes, contactRoutes);
 app.use("/curious-life/blogs", blogRoutes);
 
+app.use((err, req, res, next) => {
+  if (err.message && err.message.includes('CORS')) {
+    return res.status(403).json({ message: err.message });
+  }
+  next(err);
+});
 
-
-//listening to server connection
-app.listen(PORT, () => console.log(`Server is connected on ${PORT}`));
+// Starting the server
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
