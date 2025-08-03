@@ -24,7 +24,7 @@ const signup = async (req, res) => {
       fullName,
       email,
       password: hashedPassword,
-      role
+      role,
     });
 
     const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, {
@@ -33,9 +33,9 @@ const signup = async (req, res) => {
 
     res.cookie("jwt", token, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      secure: process.env.NODE_ENV === "production", // only HTTPS in prod
-      sameSite: "lax",
+      secure: true, 
+      sameSite: "None", 
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     return res.status(201).json({
@@ -82,9 +82,9 @@ const login = async (req, res) => {
 
     res.cookie("jwt", token, {
       httpOnly: true,
+      secure: true,
+      sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
     });
 
     return res.status(200).json({
@@ -93,7 +93,7 @@ const login = async (req, res) => {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
-        role: user.role
+        role: user.role,
       },
       token,
     });
