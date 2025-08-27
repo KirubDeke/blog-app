@@ -3,12 +3,13 @@ const dayjs = require("dayjs");
 const relativeTime = require("dayjs/plugin/relativeTime");
 const { where } = require("sequelize");
 const { fn, col, literal } = require("sequelize");
+const cloudinary = require("../../utils/cloudinary");
 
 dayjs.extend(relativeTime);
 
 const createBlog = async (req, res) => {
   const { title, body, category } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
+  const image = req.file ? req.file.path : null;
 
   if (!title || !body || !category) {
     return res.status(400).json({
@@ -40,12 +41,11 @@ const createBlog = async (req, res) => {
     });
   }
 };
-
 //update a blog
 const updateBlog = async (req, res) => {
   const { id } = req.params;
   const { title, body, category } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
+  const image = req.file ? req.file.path : null;
 
   try {
     const blog = await db.blogs.findOne({ where: { id } });
@@ -57,7 +57,9 @@ const updateBlog = async (req, res) => {
       });
     }
 
-    const updateData = { title, body, category, image };
+    const updateData = { title, body, category };
+    if (image) updateData.image = image; 
+
     await db.blogs.update(updateData, { where: { id } });
 
     return res.status(200).json({
@@ -85,6 +87,10 @@ const deleteBlog = async (req, res) => {
         message: "Blog Not Found",
       });
     }
+    if (blog.image) {
+      const publicId = blog.image.split("/").pop().split(".")[0]; 
+      await cloudinary.uploader.destroy(`blog_images/${publicId}`);
+    }
 
     await db.blogs.destroy({ where: { id } });
 
@@ -100,6 +106,7 @@ const deleteBlog = async (req, res) => {
     });
   }
 };
+
 
 const commentBlog = async (req, res) => {
   const userId = req.user.id;
