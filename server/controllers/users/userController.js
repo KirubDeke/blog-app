@@ -122,8 +122,8 @@ const getMe = async (req, res) => {
 const signout = (req, res) => {
   res.clearCookie("jwt", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: true,
+    sameSite: "None",
   });
 
   return res.status(200).json({
