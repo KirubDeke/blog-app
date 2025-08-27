@@ -1,9 +1,7 @@
 const bcrypt = require("bcrypt");
 const db = require("../../models");
 const jwt = require("jsonwebtoken");
-const { where, Model } = require("sequelize");
 
-// Assigning users to the variable User
 const User = db.users;
 
 const signup = async (req, res) => {
@@ -33,8 +31,8 @@ const signup = async (req, res) => {
 
     res.cookie("jwt", token, {
       httpOnly: true,
-      secure: true, 
-      sameSite: "None", 
+      secure: true,
+      sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
@@ -160,11 +158,8 @@ const profile = async (req, res) => {
 const editProfile = async (req, res) => {
   const userId = req.user?.id;
   const { fullName, email, password } = req.body;
-  const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
-    console.log("BODY:", req.body);
-
     const user = await db.users.findOne({ where: { id: userId } });
     if (!user) {
       return res.status(404).json({
@@ -172,25 +167,21 @@ const editProfile = async (req, res) => {
         message: "User not found",
       });
     }
-
     const updateData = {
       fullName,
       email,
     };
-
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
     }
-
-    if (photo) {
-      updateData.photo = photo;
+    if (req.file && req.file.path) {
+      updateData.photo = req.file.path;
     }
-
     await db.users.update(updateData, { where: { id: userId } });
-
     return res.status(200).json({
       status: "success",
       message: "Profile updated successfully",
+      data: updateData,
     });
   } catch (error) {
     console.error(error);
