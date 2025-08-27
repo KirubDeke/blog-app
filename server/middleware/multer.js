@@ -5,7 +5,7 @@ const cloudinary = require("../utils/cloudinary");
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "kirub-rental",
+    folder: "curious-life",
     allowed_formats: ["jpg", "jpeg", "png", "webp"],
   },
 });
