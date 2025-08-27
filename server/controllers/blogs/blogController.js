@@ -671,33 +671,51 @@ const unsaveBlog = async (req, res) => {
 //get saved blogs
 const getSavedBlogs = async (req, res) => {
   const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ status: "fail", message: "Unauthorized" });
+  }
   try {
-    const saved = await db.saved_blog.findAll({
-      where: { userId },
-      include: {
-        model: db.blogs,
-        include: {
-          model: db.users,
-          as: "author",
-          attributes: ["id", "fullName", "photo"],
+    const userWithSaved = await db.users.findByPk(userId, {
+      include: [
+        {
+          model: db.blogs,
+          as: "savedBlogs",
+          include: [
+            {
+              model: db.users,
+              as: "author",
+              attributes: ["id", "fullName", "photo"],
+            },
+          ],
         },
-      },
-      order: [["createdAt", "DESC"]],
+      ],
+      order: [[{ model: db.blogs, as: "savedBlogs" }, "createdAt", "DESC"]],
     });
 
-    const savedBlogs = saved.map((entry) => entry.blog);
+    const savedBlogs = userWithSaved?.savedBlogs || [];
+
+    if (savedBlogs.length === 0) {
+      return res.status(200).json({
+        status: "success",
+        message: "You have no saved blogs yet.",
+        data: [],
+      });
+    }
 
     return res.status(200).json({
       status: "success",
+      message: "Saved blogs fetched successfully",
       data: savedBlogs,
     });
   } catch (error) {
-    console.error(error);
-    return res
-      .status(500)
-      .json({ status: "fail", message: "Internal server error" });
+    console.error("Error fetching saved blogs:", error);
+    return res.status(500).json({
+      status: "fail",
+      message: "Internal server error",
+    });
   }
 };
+
 
 module.exports = {
   createBlog,
