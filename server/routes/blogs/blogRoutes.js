@@ -1,7 +1,7 @@
 const express = require("express");
 const blogController = require("../../controllers/blogs/blogController");
 const { authenticate, canPost } = require("../../middleware/userAuth");
-const upload = require("../../config/multerConfig");
+const upload = require("../../middleware/multer");
 const router = express.Router();
 
 // Add body parser with increased limit
